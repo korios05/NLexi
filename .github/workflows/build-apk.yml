@@ -1,0 +1,101 @@
+name: Φτιάξε το NLexi APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Βρες τον φάκελο της εφαρμογής
+        run: |
+          echo "Αρχεία στο repository:"
+          find . -path ./.git -prune -o -maxdepth 3 -print | head -60
+          PKG=$(find . -path ./node_modules -prune -o -name package.json -print | grep -v node_modules | head -1)
+          if [ -z "$PKG" ]; then echo "::error::Δεν βρέθηκε το package.json. Ανέβασε όλα τα αρχεία του zip."; exit 1; fi
+          APP_DIR=$(dirname "$PKG")
+          echo "Φάκελος εφαρμογής: $APP_DIR"
+          echo "APP_DIR=$APP_DIR" >> "$GITHUB_ENV"
+          ls -la "$APP_DIR"
+          for f in capacitor.config.json www/index.html www/app.js scripts/copy-vendor.mjs scripts/patch-android.mjs android-keys/debug.keystore; do
+            [ -e "$APP_DIR/$f" ] && echo "✓ $f" || echo "::warning::Λείπει το $f"
+          done
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools platforms;android-35 build-tools;35.0.0"
+
+      - name: Εγκατάσταση
+        run: |
+          cd "$APP_DIR"
+          npm install --legacy-peer-deps --no-audit --no-fund
+
+      - name: Δημιουργία project Android
+        run: |
+          cd "$APP_DIR"
+          node scripts/copy-vendor.mjs
+          rm -rf android
+          npx cap add android
+          node scripts/patch-android.mjs
+
+      - name: Εικονίδιο εφαρμογής
+        continue-on-error: true
+        run: |
+          cd "$APP_DIR"
+          npx capacitor-assets generate --android
+
+      - name: Συγχρονισμός
+        run: |
+          cd "$APP_DIR"
+          npx cap sync android
+
+      - name: Σταθερό κλειδί υπογραφής
+        run: |
+          mkdir -p ~/.android
+          if [ -f "$APP_DIR/android-keys/debug.keystore" ]; then cp "$APP_DIR/android-keys/debug.keystore" ~/.android/debug.keystore; fi
+
+      - name: Build APK
+        run: |
+          mkdir -p ~/.gradle/init.d
+          if [ -f "$APP_DIR/scripts/maven-mirror.gradle" ]; then
+            cp "$APP_DIR/scripts/maven-mirror.gradle" ~/.gradle/init.d/
+          else
+            curl -fsSL -o ~/.gradle/init.d/maven-mirror.gradle https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/scripts/maven-mirror.gradle || true
+          fi
+          cd "$APP_DIR/android"
+          chmod +x gradlew
+          for i in 1 2 3; do
+            ./gradlew assembleDebug --no-daemon && break
+            echo "::warning::Αποτυχία $i/3 — ξαναδοκιμάζω σε 60 δευτερόλεπτα"
+            sleep 60
+          done
+          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/NLexi.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NLexi-apk
+          path: NLexi.apk
+
+      - name: Δημοσίευση στα Releases
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest NLexi.apk --title "NLexi — τελευταία έκδοση" --notes "Κατέβασε το NLexi.apk από το κινητό σου."
