@@ -17,3 +17,26 @@ const name = process.env.VERSION_NAME || "2.0";
 gradle = gradle.replace(/versionCode\s+\d+/, `versionCode ${code}`).replace(/versionName\s+"[^"]*"/, `versionName "${name}"`);
 writeFileSync(g, gradle);
 console.log(`✓ versionCode ${code}, versionName ${name}`);
+
+// Υπογραφή ΠΑΝΤΑ με το σταθερό κλειδί του project (για να γίνονται ενημερώσεις χωρίς απεγκατάσταση).
+import { resolve } from "node:path";
+import { existsSync } from "node:fs";
+const ks = resolve("android-keys/debug.keystore");
+if (!existsSync(ks)) { console.error("✗ Λείπει το android-keys/debug.keystore"); process.exit(1); }
+let gb = readFileSync(g, "utf8");
+if (!gb.includes("NLEXI_SIGNING")) {
+  const block = `
+    // NLEXI_SIGNING
+    signingConfigs {
+        debug {
+            storeFile file(${JSON.stringify(ks)})
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
+        }
+    }
+`;
+  gb = gb.replace(/android\s*\{/, (m) => m + block);
+  writeFileSync(g, gb);
+}
+console.log("✓ signing με " + ks);
