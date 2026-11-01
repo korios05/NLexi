@@ -1,0 +1,13 @@
+{
+  "appId": "com.nlexi.app",
+  "appName": "NLexi",
+  "webDir": "www",
+  "android": {
+    "adjustMarginsForEdgeToEdge": "force"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "iconColor": "#FF5733"
+    }
+  }
+}
