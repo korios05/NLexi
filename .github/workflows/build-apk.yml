@@ -23,9 +23,9 @@ jobs:
           distribution: temurin
           java-version: 21
 
-              - uses: android-actions/setup-android@v3
-           with:
-             packages: "platform-tools platforms;android-35 build-tools;35.0.0"
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools platforms;android-35 build-tools;35.0.0"
 
       - name: Εγκατάσταση
         run: npm install
@@ -38,7 +38,7 @@ jobs:
           npx capacitor-assets generate --android
           npx cap sync android
 
-      - name: Σταθερό κλειδί υπογραφής (για να γίνονται ενημερώσεις χωρίς απεγκατάσταση)
+      - name: Σταθερό κλειδί υπογραφής
         run: |
           mkdir -p ~/.android
           cp android-keys/debug.keystore ~/.android/debug.keystore
@@ -55,9 +55,9 @@ jobs:
           name: NLexi-apk
           path: NLexi.apk
 
-      - name: Δημοσίευση στα Releases (για εύκολο κατέβασμα από το κινητό)
+      - name: Δημοσίευση στα Releases
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release delete latest --yes --cleanup-tag || true
-          gh release create latest NLexi.apk --title "NLexi — τελευταία έκδοση" --notes "Χτίστηκε $(date -u '+%Y-%m-%d %H:%M') UTC. Κατέβασε το NLexi.apk από το κινητό σου."
+          gh release create latest NLexi.apk --title "NLexi — τελευταία έκδοση" --notes "Κατέβασε το NLexi.apk από το κινητό σου."
