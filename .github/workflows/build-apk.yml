@@ -52,7 +52,7 @@ jobs:
           node scripts/copy-vendor.mjs
           rm -rf android
           npx cap add android
-          node scripts/patch-android.mjs
+          VERSION_CODE=$(( 100 + ${{ github.run_number }} )) VERSION_NAME="2.${{ github.run_number }}" node scripts/patch-android.mjs
 
       - name: Εικονίδιο εφαρμογής
         continue-on-error: true
@@ -68,7 +68,13 @@ jobs:
       - name: Σταθερό κλειδί υπογραφής
         run: |
           mkdir -p ~/.android
-          if [ -f "$APP_DIR/android-keys/debug.keystore" ]; then cp "$APP_DIR/android-keys/debug.keystore" ~/.android/debug.keystore; fi
+          if [ ! -f "$APP_DIR/android-keys/debug.keystore" ]; then
+            echo "::error::Λείπει το android-keys/debug.keystore. Χωρίς αυτό η νέα έκδοση ΔΕΝ θα εγκαθίσταται πάνω στην παλιά. Ανέβασέ το από το zip."
+            exit 1
+          fi
+          cp "$APP_DIR/android-keys/debug.keystore" ~/.android/debug.keystore
+          echo "Αποτύπωμα κλειδιού (πρέπει να μένει ίδιο σε κάθε build):"
+          keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey | grep "SHA256:"
 
       - name: Build APK
         run: |
