@@ -93,6 +93,18 @@ jobs:
           done
           cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/NLexi.apk"
 
+      - name: Έλεγχος υπογραφής (πρέπει να είναι πάντα η ίδια)
+        run: |
+          EXPECTED=82b23a26cb01e2a9c003a061802c2ae3c7452ab6f4f21241ea522d3fdbed5132
+          APKSIGNER=$(ls $ANDROID_HOME/build-tools/*/apksigner | sort -V | tail -1)
+          ACTUAL=$($APKSIGNER verify --print-certs NLexi.apk | grep -m1 "SHA-256 digest" | awk '{print $NF}')
+          echo "Υπογραφή APK: $ACTUAL"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::Λάθος υπογραφή! Το APK δεν θα εγκαθίσταται ως ενημέρωση."
+            exit 1
+          fi
+          echo "✓ Σωστή υπογραφή — εγκαθίσταται ως ενημέρωση"
+
       - uses: actions/upload-artifact@v4
         with:
           name: NLexi-apk
