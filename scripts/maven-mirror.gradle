@@ -1,0 +1,18 @@
+// Χρησιμοποιεί καθρέφτη του Maven Central (αποφεύγει το σφάλμα 429 Too Many Requests).
+def MIRROR = 'https://maven-central.storage-download.googleapis.com/maven2/'
+def fixRepos = { RepositoryHandler repos ->
+    repos.withType(MavenArtifactRepository).configureEach { r ->
+        def u = r.url.toString()
+        if (u.contains('repo.maven.apache.org') || u.contains('repo1.maven.org')) {
+            r.url = MIRROR
+        }
+    }
+}
+beforeSettings { s ->
+    fixRepos(s.pluginManagement.repositories)
+    fixRepos(s.dependencyResolutionManagement.repositories)
+}
+allprojects {
+    fixRepos(buildscript.repositories)
+    fixRepos(repositories)
+}
