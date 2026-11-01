@@ -301,3 +301,15 @@ label.field > span { display: block; font-weight: 800; font-size: 13.5px; margin
 .preview-card { border: 2px solid var(--ink); border-radius: 12px; padding: 10px 12px; background: var(--card); }
 .preview-card + .preview-card { margin-top: 8px; }
 a { color: var(--accent); font-weight: 800; }
+
+/* ---------- Κουμπί γλώσσας ---------- */
+.lang-pill {
+  display: inline-flex; align-items: center; gap: 6px; flex: none;
+  padding: 6px 12px; border-radius: 12px;
+  background: #EAF2FD; color: #1E4FA8; border: 2px solid #3B6FC9; box-shadow: 2px 2px 0 0 #3B6FC9;
+  font-weight: 800; font-size: 14px;
+}
+.lang-pill:active { transform: translate(2px, 2px); box-shadow: none; }
+.lang-pill .lp-swap { font-size: 16px; line-height: 1; }
+.lang-pill .lp-code { font-size: 10px; font-weight: 800; opacity: .75; letter-spacing: .02em; }
+.lang-pill .lp-name { font-weight: 600; opacity: .8; }
